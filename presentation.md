@@ -1,14 +1,17 @@
+
 # L'environnement RRRR
-React ramda reselect redux
+### React + ramda + redux + reselect
 
 confoo_mtl_2017
+
+__Benjamin Dreux @ code3.ca__
 
 ---
 
 # React
 
 * librairie de vue
-* incite au fonctionnel
+* Incite au fonctionnel
 * JSX
 * Pas de gestion de l'état
 * Pas de communication serveur
@@ -27,11 +30,11 @@ const redButton = ({label, onClick}) => {
 
 # Redux
 
-* Gestion centralisé l'état
 * Conçu pour React
-* update => rendu de tout les composants (par défaut)
-* possibilité de couper des branches de rendu
-* état ===  une grosse map
+* Gestion centralisé l'état
+* Update(state) => rendu de l'app au complet
+* Possibilité de couper des branches de rendu
+* État ~  une grosse map
 
 
 ---
@@ -40,7 +43,7 @@ const redButton = ({label, onClick}) => {
 const reducer = (state, action) => {
   switch(action.type) {
     case "ADD_CONTACT":
-      return addContact(state, action);
+      return addContact(state, action)
   }
 }
 ````
@@ -69,8 +72,8 @@ export default connect(stateToProps, dispatchToProps)(component)
 
 # Ramda
 * Manipulation de donnée
-* type de donnée natif (Map, Array, String)
-* non-destructive
+* Type de donnée natif (Map, Array, String)
+* Non-destructive
 * API très fonctionnel (map, flatten, reduce)
 * Structure toujours dernier paramètre (!= lodash)
 * Currifié
@@ -78,27 +81,43 @@ export default connect(stateToProps, dispatchToProps)(component)
 ---
 
 Manipulation de base
+
 ```js
 const m = {k: "v"}
 const n = R.assoc("j", "w", m)
-//=> n == {k: "v", j: "w"}
+//=> n === {k: "v", j: "w"}
+
+const a = [1, 2, 3]
+const a2 = R.append(4, a)
+//=> a2 === [1, 2, 3, 4]
+
+const str = R.replace("a", "A",  "aBC")
+// => str === "ABC"
 ```
 
-Manipulation avancé
+---
+
+Manipulation avancée
+
 ````js
-const m = {a: b: {c: d: {cmpt: 10}}}
-const update = {a: b: {c: d: {cmpt: R.inc}}}
-const m2 = R.evolve(update, m)
-// => m2 = {a: b: {c: d: {cmpt: 11}}}
+const m = {cmpt: 10, l: [1, 2], str: "abc"}
+
+const update = {cmpt: R.inc, l: R.append(3)}
+
+R.evolve(update, m) // => {cmpt: 11, l: [1, 2, 3], str: "abc"}
 ````
 
 ---
 
 # Reselect
 
-* Permet de mémoiser  des valeur calculés
+* Calcul de valeur dérivé
+* Memoization
+* Composable
 
 ---
+
+##Memoization
 
 ````js
 let count = 0
@@ -167,7 +186,7 @@ render((
 
 AUCUN: _manuellement_
 
-TOUS: _(du moins mentalement)_
+TOUS: _(mentalement)_
 
 ---
 
@@ -182,7 +201,7 @@ Via dépendance:
 
 ## Qui doit avoir accès au store ?
 
-TOUS
+(presque) TOUS
 
 * Composition de composant plus simple
 * Branche d'update coupé rapidement
@@ -191,8 +210,38 @@ TOUS
 
 ## Comment gérer le store ?
 
-* Pas de mutation
-* Redux aide facilite
+* Redux fournit un cadre
+* Pas de mutation => Ramda
+* 1 reducer
+
+---
+
+Exemple de reaction
+
+````js
+const reducer = (state, action) => {
+  const fns = {
+    addItemToCart: addItemToCart
+  }
+  const fn = fns[action.type] || R.always
+  return fn(state, action)
+}
+````
+
+```js
+const addItemToCart = (state, action) => {
+  const newSubtotal = R.add(action.newItem.price, state.subtotal)
+  const newTaxes = newSubtotal * state.taxRate
+  const newTotal = newSubtotal + newTaxes
+  const tr = {
+    items: R.push(action.newItem),
+    subtotal: R.always(newSubtotal),
+    taxes: R.always(newTaxes),
+    total: R.always(newTotal)
+  }
+  return R.evolve(tr, state)
+}
+```
 
 ---
 
@@ -238,7 +287,7 @@ state = {
       sommaire: {...}
     }
   },
-  showableItems: [42, 10,...],
+  itemsToRender: [42, 10,...],
 
 }
 ````
@@ -287,91 +336,11 @@ render(){
 
 ````
 
----
-
-
-## Animation interruptible
-
-```js
-class Demo extends Component {
-  handleMouseDown() {
-    this.setState({open: !this.state.open})
-  }
-  render() {
-    return <div>
-      <button onMouseDown={this.handleMouseDown}>Toggle</button>
-      <Motion style={{x: spring(this.state.open ? 400 : 0)}}>
-        {({x}) =>
-          <div className="demo">
-            <div className="demo-block" style={{
-              transform: `translate3d(${x}px, 0, 0)`
-            }} />
-          </div>}
-      </Motion>
-    </div>
-  }
-}
-```
-
-@voir React-Motion
-
----
-
-## Traduction
-
-```js
-
-const TrMessage = () => {
-  const msg = `Hello {name}, you have {unreadMsg, number} {unreadMsg,
-    plural,
-    one {message}
-    other {messages}
-  }`
-
-  return  <FormattedMessage
-      id="welcome"
-      defaultMessage={msg}
-      values={user}
-  />
-
-}
-```
-
-@voir React-intl
-
----
-
-Extraction autmatique via Babel-react-intl
-
-Format JSON
-````json
-[
-  {
-    "id": "welcome",
-    "defaultMessage": "Hello {name}, you have {unreadMsg, number} {unreadMsg, plural, one {message} other {messages}"
-  }
-]
-````
-
-1 json / composant
-
-
----
-
-quelques coup  de ༼∩ •́ ヮ •̀ ༽⊃━☆ﾟ. * ･ ｡ﾟ
-
-````json
-{
-  "welcome": "Bonjour {name}, you have {unreadMsg, number} {unreadMsg, plural, zero {message}, one {message} other {messages}}"
-}
-````
-
-1 json / app
 
 ---
 
 <!-- .slides: width: 1300px -->
-## Modification d'un formulaire
+## Modification de formulaire
 
 ````js
 const form = ({firstname, lastname, invalidFields, onChange})=> {
@@ -413,3 +382,141 @@ const onChangeField = (state, action) => {
 
 }
 ````
+
+
+---
+
+## Composition d'action
+<!-- .slides: width: 1300px -->
+```js
+  export default apiQuery => (dispatch, getState) => {
+  const queryMatchingIds = ({apiQuery}, cb) => api.getList(apiQuery, cb)
+  const matchs = ({searchResults}, cb) => cb(null, searchResults)
+  const getIdsToFetch = ({matchs}, cb) => {
+    const isInCache = id => R.path(['items', id], getState())
+    const detailsToFetch = R.reject(isInCache, matchs)
+    cb(null, detailsToFetch)    
+  }
+
+  const fetchItems = ({idsToFetch}, cb) => api.getSummaries(idsToFetch, cb)
+  const sink = (err, {searchResults}) => {
+    const action = err ? {type: "error", err} :
+      {type: 'show_items', ids: searchResults}
+    dispatch(action)
+  }
+}
+```
+
+```js
+  auto({
+    apiQuery:        (cb) => cb(null, apiQuery)),
+    searchResults:   ['apiQuery', queryMatchingIds],
+    matchs:          ['searchResults', matchs],
+    idsToFetch:      ['matchs', getIdsToFetch],
+    estateSummaries: ['idsToFetch', fetchItems],
+  }, sink)
+```
+
+---
+
+
+## Why did you update ?
+```js
+getDisplayName = o => o.displayName ||
+                      o.constructor.displayName ||
+                      o.constructor.name
+```
+```js
+componentWillUpdate(nextProps, nextState){
+  const uselessRender =
+    R.equals(nextProps, this.props) &&
+    R.equals(nextState, this.state)
+  if(uselessRender){
+    console.info(`Useless render for ${getDisplayName(this)}`)
+    console.info("props", this.props, "nextProps", nextProps)
+    console.info("state", this.state, "nextState", nextState)
+  }
+}
+```
+
+@voir github.com/garbles/why-did-you-update
+
+---
+
+## Traduction
+
+```js
+
+const TrMessage = () => {
+
+  return  <FormattedMessage
+      id="welcome"
+      defaultMessage={`Hello {name}, you have {unreadMsg, number} {
+        unreadMsg,
+        plural,
+        one {message}
+        other {messages}
+      }`}
+      values={user}
+  />
+
+}
+```
+
+@voir React-intl
+
+---
+
+Extraction automatique via Babel-react-intl
+
+Format JSON
+````json
+[
+  {
+    "id": "welcome",
+    "defaultMessage": "Hello {name}, you have {unreadMsg, number} {unreadMsg, plural, one {message} other {messages}"
+  }
+]
+````
+
+1 json / composant
+
+
+---
+
+quelques coups  de ༼∩ •́ ヮ •̀ ༽⊃━☆ﾟ. * ･ ｡ﾟ
+
+````json
+{
+  "welcome": "Bonjour {name}, vous avez {unreadMsg, number} {unreadMsg, plural, zero {message}, one {message} other {messages}}"
+}
+````
+
+1 json / locale
+
+---
+
+## Animation interruptible
+
+```js
+class Demo extends Component {
+  handleMouseDown() {
+    this.setState({open: !this.state.open})
+  }
+  render() {
+    return <div>
+      <button onMouseDown={this.handleMouseDown}>Toggle</button>
+      <Motion style={{x: spring(this.state.open ? 400 : 0)}}>
+        {({x}) =>
+          <div className="demo">
+            <div className="demo-block" style={{
+              transform: `translate3d(${x}px, 0, 0)`
+            }} />
+          </div>}
+      </Motion>
+    </div>
+  }
+}
+```
+
+@voir React-Motion
